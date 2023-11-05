@@ -2,9 +2,14 @@
 const express = require('express');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config()
+const cors = require('cors');
 
 // server app
 const app = express();
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
 const port = process.env.PORT || 5555
 
 
@@ -45,7 +50,7 @@ async function run() {
         const sliderCollection = client.db('HotelBooking').collection('sliders');
         app.get('/api/v1/sliders', async(req, res) => {
             const result = await sliderCollection.find().toArray();
-            return result;
+            res.send(result)
         })
 
         /*-------------------API End--------------------*/
