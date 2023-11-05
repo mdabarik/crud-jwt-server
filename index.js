@@ -31,11 +31,34 @@ async function run() {
         /*-------------------API Start--------------------*/
         const roomCollection = client.db('HotelBooking').collection('rooms');
         // http://localhost:5555/api/v1/rooms -- fetch all rooms
-        // http://localhost:5555/api/v1/rooms?filter=1000-5000&sortField=price-per-night&sort=asc/desc -- fetch rooms by filtering and sorting
-        // http://localhost:5555/api/v1/rooms?filter=1000-5000&sortField=price-per-night&sort=asc&page=1&limit=5 -- paginations (optional)
+        // http://localhost:5555/api/v1/rooms?filterByPrice=1000-5000&sortField=price-per-night&sortOrder=asc/desc -- fetch rooms by filtering or/and sorting
         app.get('/api/v1/rooms', async(req, res) => {
-            const query = {};
-            const result = await roomCollection.find(query).toArray();
+            let queryFilter = {};
+            let sortObj = {};
+
+            const filterByPrice = req.query.filterByPrice;
+            const sortField = req.query.sortField;
+            const sortOrder = req.query.sortOrder;
+            console.log(filterByPrice, sortField, sortOrder);
+
+            if (filterByPrice) {
+                const interval = filterByPrice.split("-");
+                const lowerLimit = parseInt(interval[0]);
+                const upperLimit = parseInt(interval[1]);
+
+                queryFilter = {
+                    price_per_night: {
+                        $gte: lowerLimit,
+                        $lte: upperLimit
+                    }
+                };
+            }
+            
+            if (sortField && sortOrder) {
+                sortObj[sortField] = sortOrder;
+            }
+
+            const result = await roomCollection.find(queryFilter).sort(sortObj).toArray();
             res.send(result);
         })
 
