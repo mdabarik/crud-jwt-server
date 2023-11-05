@@ -6,6 +6,7 @@ const cors = require('cors');
 
 // server app
 const app = express();
+app.use(express.json());
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true
@@ -32,7 +33,7 @@ async function run() {
         const roomCollection = client.db('HotelBooking').collection('rooms');
         // http://localhost:5555/api/v1/rooms -- fetch all rooms
         // http://localhost:5555/api/v1/rooms?filterByPrice=1000-5000&sortField=price-per-night&sortOrder=asc/desc -- fetch rooms by filtering or/and sorting
-        app.get('/api/v1/rooms', async(req, res) => {
+        app.get('/api/v1/rooms', async (req, res) => {
             let queryFilter = {};
             let sortObj = {};
 
@@ -66,14 +67,29 @@ async function run() {
             res.send(result);
         })
 
-        app.get('/api/v1/rooms/:id', async(req, res) => {
+        app.get('/api/v1/rooms/:id', async (req, res) => {
             const id = req.params.id;
-            const filter = {_id: new ObjectId(id)};
+            const filter = { _id: new ObjectId(id) };
             const result = await roomCollection.findOne(filter)
             res.send(result);
         })
 
-        app.get('/api/v1/reviews', async(req, res) => {
+        /*** Booking API ***/
+        // http://localhost:5555/api/v1/booking (POST)
+        const bookingCollection = client.db('HotelBooking').collection('booking');
+        app.post('/api/v1/booking', async (req, res) => {
+            const booking = req.body;
+            const result = await bookingCollection.insertOne(booking);
+            res.send(result);
+        })
+        app.get('/api/v1/booking/:email', async(req, res) => {
+            const email = req.params.email;
+            const query = { user_email: email };
+            const result = await bookingCollection.find(query).toArray();
+            return res.send(result);
+        })
+
+        app.get('/api/v1/reviews', async (req, res) => {
             res.send('reviews all')
         })
 
@@ -81,8 +97,9 @@ async function run() {
 
         })
 
+        /**** Sliders API ***/
         const sliderCollection = client.db('HotelBooking').collection('sliders');
-        app.get('/api/v1/sliders', async(req, res) => {
+        app.get('/api/v1/sliders', async (req, res) => {
             const result = await sliderCollection.find().toArray();
             res.send(result)
         })
@@ -102,3 +119,15 @@ app.get('/', (req, res) => {
 app.listen(port, (req, res) => {
     console.log('server is running...');
 })
+
+/* Booking post
+{
+    "_id"
+    "room_id"
+    "room_description"
+    "price_per_night"
+    "booking_date"
+    "upto_cancel_date"
+    "room_image"
+    "user_email"˝
+  } */
