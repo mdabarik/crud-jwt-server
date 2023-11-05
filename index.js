@@ -37,11 +37,11 @@ async function run() {
             let sortObj = {};
 
             const filterByPrice = req.query.filterByPrice;
-            const sortField = req.query.sortField;
-            const sortOrder = req.query.sortOrder;
-            console.log(filterByPrice, sortField, sortOrder);
+            const sortField = req.query?.sortField;
+            const sortOrder = req.query?.sortOrder;
 
-            if (filterByPrice) {
+
+            if (filterByPrice != "") {
                 const interval = filterByPrice.split("-");
                 const lowerLimit = parseInt(interval[0]);
                 const upperLimit = parseInt(interval[1]);
@@ -53,10 +53,21 @@ async function run() {
                     }
                 };
             }
-            
-            if (sortField && sortOrder) {
+
+
+
+            console.log('sortField:', sortField, "sortOrder:", typeof sortOrder);
+
+            if (sortField && sortOrder && sortField != "" && sortOrder != "") {
                 sortObj[sortField] = sortOrder;
+                console.log('hello');
+            } else {
+                const noSortResult = await roomCollection.find(queryFilter).toArray();
+                res.send(noSortResult)
+                return;
             }
+
+            console.log(sortObj);
 
             const result = await roomCollection.find(queryFilter).sort(sortObj).toArray();
             res.send(result);
