@@ -1,6 +1,6 @@
 // importing package's
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const cors = require('cors');
 
@@ -40,7 +40,6 @@ async function run() {
             const sortField = req.query?.sortField;
             const sortOrder = req.query?.sortOrder;
 
-
             if (filterByPrice != "") {
                 const interval = filterByPrice.split("-");
                 const lowerLimit = parseInt(interval[0]);
@@ -54,10 +53,6 @@ async function run() {
                 };
             }
 
-
-
-            console.log('sortField:', sortField, "sortOrder:", typeof sortOrder);
-
             if (sortField && sortOrder && sortField != "" && sortOrder != "") {
                 sortObj[sortField] = sortOrder;
                 console.log('hello');
@@ -67,9 +62,14 @@ async function run() {
                 return;
             }
 
-            console.log(sortObj);
-
             const result = await roomCollection.find(queryFilter).sort(sortObj).toArray();
+            res.send(result);
+        })
+
+        app.get('/api/v1/rooms/:id', async(req, res) => {
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const result = await roomCollection.findOne(filter)
             res.send(result);
         })
 
