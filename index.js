@@ -3,6 +3,7 @@ const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const cors = require('cors');
+const moment = require('moment');
 
 // server app
 const app = express();
@@ -78,16 +79,78 @@ async function run() {
         // http://localhost:5555/api/v1/booking (POST)
         const bookingCollection = client.db('HotelBooking').collection('booking');
         app.post('/api/v1/booking', async (req, res) => {
-            const booking = req.body;
-            const result = await bookingCollection.insertOne(booking);
+            const { bookingDate, roomImage, roomId, roomDescription, pricePerNight, userEmail } = req.body;
+            console.log(bookingDate, roomId);
+            const newBooking = {
+                roomId,
+                roomDescription,
+                pricePerNight,
+                bookingDate,
+                roomImage,
+                userEmail
+            }
+            const result = await bookingCollection.insertOne(newBooking);
             res.send(result);
         })
-        app.get('/api/v1/booking/:email', async(req, res) => {
-            const email = req.params.email;
-            const query = { user_email: email };
-            const result = await bookingCollection.find(query).toArray();
-            return res.send(result);
-        })
+
+        app.get('/api/v1/booking', async (req, res) => {
+            const { date, id } = req.query;
+            console.log(date, id);
+
+            const newDate = date + "";
+
+            const filter = {
+                $and: [
+                    {
+                        roomId: id
+                    },
+                    {
+                        bookingDate: newDate
+                    }
+                ]
+            }
+
+            const result = await bookingCollection.find(filter).toArray();
+            res.send({result});
+        });
+
+        app.get('/api/v1/all-booking', async (req, res) => {
+            const result = await bookingCollection.find().toArray();
+            res.send({result});
+        });
+
+
+        // app.get('/api/v1/booking', async(req, res) => {
+        //     const id = req.query.room_id;
+        //     const date = dayjs(req.query.date);
+        //     const day = date.date();
+        //     const month = date.month() + 1; 
+        //     const year = date.year();
+
+        //     console.log(day, month, year);
+
+        //     const filter = {
+        //         $expr: {
+        //             $and: [
+        //               { $eq: [{ $dayOfMonth: "$booking_date" }, day] },
+        //               { $eq: [{ $month: "$booking_date" }, month] }, 
+        //               { $eq: [{ $year: "$booking_date" }, year] },
+        //               {room_id: id},
+        //             ]
+        //           }
+        //     }
+        //     console.log(filter);
+        //     const result = await bookingCollection.findOne(filter);
+        //     res.send(result);
+        //     // const email = req.query.email;
+        //     // if (!email) {
+        //     //     res.status(403).send('Forbidden');
+        //     //     return;
+        //     // }
+        //     // const query = { user_email: email };
+        //     // const result = await bookingCollection.find(query).toArray();
+        //     // return res.send(result);
+        // })
 
         app.get('/api/v1/reviews', async (req, res) => {
             res.send('reviews all')
@@ -113,6 +176,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
+    console.log(new Date());
     res.send('base route hit detected!!!');
 })
 
@@ -131,3 +195,24 @@ app.listen(port, (req, res) => {
     "room_image"
     "user_email"˝
   } */
+
+
+/*
+const dayjs = require('dayjs');
+
+const url = 'mongodb://localhost:27017';
+const dbName = 'your_database_name';
+
+MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
+  if (err) throw err;
+
+  const db = client.db(dbName);
+
+  const currentDate = dayjs().toISOString();
+
+  db.collection('dates').find({ date: { $gt: currentDate } }).toArray((err, result) => {
+    if (err) throw err;
+    console.log('Documents where date is after the current date:', result);
+    client.close();
+  });
+}) */
