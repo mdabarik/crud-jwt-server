@@ -115,41 +115,17 @@ async function run() {
         });
 
         app.get('/api/v1/all-booking', async (req, res) => {
-            const result = await bookingCollection.find().toArray();
+            const email = req.query.email;
+            const filter = {userEmail: email}
+            const result = await bookingCollection.find(filter).toArray();
             res.send({result});
         });
 
-
-        // app.get('/api/v1/booking', async(req, res) => {
-        //     const id = req.query.room_id;
-        //     const date = dayjs(req.query.date);
-        //     const day = date.date();
-        //     const month = date.month() + 1; 
-        //     const year = date.year();
-
-        //     console.log(day, month, year);
-
-        //     const filter = {
-        //         $expr: {
-        //             $and: [
-        //               { $eq: [{ $dayOfMonth: "$booking_date" }, day] },
-        //               { $eq: [{ $month: "$booking_date" }, month] }, 
-        //               { $eq: [{ $year: "$booking_date" }, year] },
-        //               {room_id: id},
-        //             ]
-        //           }
-        //     }
-        //     console.log(filter);
-        //     const result = await bookingCollection.findOne(filter);
-        //     res.send(result);
-        //     // const email = req.query.email;
-        //     // if (!email) {
-        //     //     res.status(403).send('Forbidden');
-        //     //     return;
-        //     // }
-        //     // const query = { user_email: email };
-        //     // const result = await bookingCollection.find(query).toArray();
-        //     // return res.send(result);
+        /** booking **/
+        // app.get('/api/v1/all-booking', async(req, res) => {
+        //     const email = req.query.email;
+        //     console.log(email);
+        //     res.send('sending')
         // })
 
         app.get('/api/v1/reviews', async (req, res) => {
