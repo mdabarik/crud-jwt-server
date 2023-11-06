@@ -158,15 +158,16 @@ async function run() {
         /***** Reviews API *****/
         // /api/v1/reviews?userEmail=&roomId
         const reviewCollection = client.db('HotelBooking').collection('reviews');
-        app.get('/api/v1/reviews', async(req, res) => {
+        app.get('/api/v1/reviews', async (req, res) => {
             const userEmail = req.query.userEmail;
             const roomId = req.query.roomId;
+            console.log(userEmail, roomId);
             let filter = {}
             if (userEmail & roomId) {
                 filter = {
                     $and: [
                         {
-                            userEmail: email
+                            userEmail: userEmail
                         },
                         {
                             roomId: roomId
@@ -175,6 +176,100 @@ async function run() {
                 }
             }
             const result = await reviewCollection.find(filter).toArray();
+            res.send(result);
+        })
+
+        app.get('/api/v1/singlereview', async (req, res) => {
+            const userEmail = req.query.userEmail;
+            const roomId = req.query.roomId;
+            console.log(userEmail, roomId);
+
+            const filter = {
+                $and: [
+                    {
+                        userEmail: userEmail
+                    },
+                    {
+                        roomId: roomId
+                    }
+                ]
+            }
+
+            const result = await reviewCollection.find(filter).toArray();
+            res.send(result);
+        })
+
+        app.delete('/delete-review/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const result = await bookingCollection.deleteMany(filter);
+            res.send(result);
+        })
+
+        // tricky delete
+        app.put('/delete-review/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = {
+                _id: new ObjectId(id)
+            }
+            const data = {
+                $set: {
+                    userEmail: 'deleted',
+                    roomId: '---'
+                }
+            }
+            const options = { upsert: true };
+            const result = await bookingCollection.updateOne(filter, data, options);
+            res.send(result);
+        })
+
+
+        /** News Letter API's **/
+        const newsletterCollection = client.db('HotelBooking').collection('newsletters');
+        app.put('/api/v1/newsletter', async (req, res) => {
+            const userName = req.body.name;
+            const userEmail = req.body.email;
+            const filter = {
+                userName,
+                userEmail
+            }
+            const newsLetter = {
+                $set: {
+                    userName: userName,
+                    userEmail: userEmail
+                }
+            }
+            console.log(filter);
+            const options = { upsert: true };
+            const result = await newsletterCollection.updateOne(filter, newsLetter, options);
+            res.send(result);
+        })
+
+        // rating,
+        //     review,
+        //     userName,
+        //     photoURL,
+        //     date,
+        //     userEmail,
+        //     roomId
+        /** Add Review **/
+        app.put('/api/v1/add-review', async (req, res) => {
+            const { review, rating, userName, userEmail, photoURL, date, roomId, profession } = req.body;
+            const filter = {
+                $and: [
+                    { roomId: roomId },
+                    { userEmail: userEmail }
+                ]
+            }
+
+            const feedback = {
+                $set: {
+                    review, rating, userName, userEmail, photoURL, date, roomId, profession
+                }
+            }
+            console.log(feedback);
+            const options = { upsert: true }
+            const result = await reviewCollection.updateOne(filter, feedback, options);
             res.send(result);
         })
 
