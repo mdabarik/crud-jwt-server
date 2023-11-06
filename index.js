@@ -113,6 +113,53 @@ async function run() {
             res.send(result);
         })
 
+        app.patch('/update-date', async(req, res) => {
+            const { newDate, userEmail, id  } = req.body;
+            const dateNew = newDate + "";
+            const filter = { 
+                $and: [
+                    {_id: new ObjectId(id)},
+                    {userEmail:userEmail}
+                ]
+             }
+             const updatedBooking = {
+                $set: {
+                    bookingDate: dateNew
+                }
+             }
+             const result = await bookingCollection.updateOne(filter, updatedBooking);
+             res.send(result);
+        })
+
+        app.patch('/update-room/:id', async(req, res) => {
+            const roomId = req.params.id;
+            const { rating } = req.body;
+            const filter = {
+                _id: new ObjectId(roomId)
+            }
+            console.log(roomId);
+            const update = {
+                $inc: {
+                    count_stars: rating,
+                    count_reviews: 1
+                }
+            };
+        
+            const result = await roomCollection.updateOne(filter, update);
+        })
+
+        // app.patch('/user', async (req, res) => {
+        //     const user = req.body;
+        //     const filter = { email: user.email };
+        //     const updatedUser = {
+        //         $set: {
+        //             lastLoggedAt: user.lastLoggedAt
+        //         }
+        //     }
+        //     const result = await userCollection.updateOne(filter, updatedUser)
+        //     res.send(result)
+        // })
+
         app.get('/api/v1/booking', async (req, res) => {
             const { date, id } = req.query;
             console.log(date, id);
@@ -175,6 +222,13 @@ async function run() {
                     ]
                 }
             }
+            const result = await reviewCollection.find(filter).toArray();
+            res.send(result);
+        })
+
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = {roomId: id}
             const result = await reviewCollection.find(filter).toArray();
             res.send(result);
         })
