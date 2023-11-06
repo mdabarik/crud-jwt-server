@@ -3,19 +3,25 @@ const express = require('express');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const cors = require('cors');
-const moment = require('moment');
-
-// server app
 const app = express();
-app.use(express.json());
+
+/**** JSON Web Token ****/
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+
+
+// middleware
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ['http://localhost:5173'],
     credentials: true
 }));
+app.use(express.json());
+app.use(cookieParser());
 const port = process.env.PORT || 5555
 
 
 /*-------------------MongoDB Start--------------------*/
+const secret = process.env.SECRET;
 const DB_USER = process.env.DB_USER;
 const DB_PASS = process.env.DB_PASS;
 const uri = `mongodb+srv://${DB_USER}:${DB_PASS}@cluster0.waijmz7.mongodb.net/?retryWrites=true&w=majority`;
@@ -31,6 +37,20 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         /*-------------------API Start--------------------*/
+
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            console.log(user);
+            const token = jwt.sign(user, secret, { expiresIn: '24h' })
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: false,
+                    expires: new Date(Date.now() + 90000000)
+                })
+                .send({ success: true });
+        })
+
         const roomCollection = client.db('HotelBooking').collection('rooms');
         // http://localhost:5555/api/v1/rooms -- fetch all rooms
         // http://localhost:5555/api/v1/rooms?filterByPrice=1000-5000&sortField=price-per-night&sortOrder=asc/desc -- fetch rooms by filtering or/and sorting
@@ -111,14 +131,14 @@ async function run() {
             }
 
             const result = await bookingCollection.find(filter).toArray();
-            res.send({result});
+            res.send({ result });
         });
 
         app.get('/api/v1/all-booking', async (req, res) => {
             const email = req.query.email;
-            const filter = {userEmail: email}
+            const filter = { userEmail: email }
             const result = await bookingCollection.find(filter).toArray();
-            res.send({result});
+            res.send({ result });
         });
 
         /** booking **/
@@ -128,19 +148,34 @@ async function run() {
         //     res.send('sending')
         // })
 
-        app.get('/api/v1/reviews', async (req, res) => {
-            res.send('reviews all')
-        })
-
-        app.get('/api/v1/reviews/:id', (req, res) => {
-
-        })
-
         /**** Sliders API ***/
         const sliderCollection = client.db('HotelBooking').collection('sliders');
         app.get('/api/v1/sliders', async (req, res) => {
             const result = await sliderCollection.find().toArray();
             res.send(result)
+        })
+
+        /***** Reviews API *****/
+        // /api/v1/reviews?userEmail=&roomId
+        const reviewCollection = client.db('HotelBooking').collection('reviews');
+        app.get('/api/v1/reviews', async(req, res) => {
+            const userEmail = req.query.userEmail;
+            const roomId = req.query.roomId;
+            let filter = {}
+            if (userEmail & roomId) {
+                filter = {
+                    $and: [
+                        {
+                            userEmail: email
+                        },
+                        {
+                            roomId: roomId
+                        }
+                    ]
+                }
+            }
+            const result = await reviewCollection.find(filter).toArray();
+            res.send(result);
         })
 
         /*-------------------API End--------------------*/
@@ -159,36 +194,3 @@ app.get('/', (req, res) => {
 app.listen(port, (req, res) => {
     console.log('server is running...');
 })
-
-/* Booking post
-{
-    "_id"
-    "room_id"
-    "room_description"
-    "price_per_night"
-    "booking_date"
-    "upto_cancel_date"
-    "room_image"
-    "user_email"˝
-  } */
-
-
-/*
-const dayjs = require('dayjs');
-
-const url = 'mongodb://localhost:27017';
-const dbName = 'your_database_name';
-
-MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
-  if (err) throw err;
-
-  const db = client.db(dbName);
-
-  const currentDate = dayjs().toISOString();
-
-  db.collection('dates').find({ date: { $gt: currentDate } }).toArray((err, result) => {
-    if (err) throw err;
-    console.log('Documents where date is after the current date:', result);
-    client.close();
-  });
-}) */
