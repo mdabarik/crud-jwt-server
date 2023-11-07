@@ -75,26 +75,6 @@ async function run() {
                 .send({ success: true });
         })
 
-        // app.post('/jwt', async (req, res) => {
-        //     const user = req.body;
-        //     console.log('jwt', user);
-        //     const token = jwt.sign(user, secret, { expiresIn: '24h' })
-        //     console.log(token);
-
-
-        //     const expirationDate = new Date();
-        //     expirationDate.setDate(expirationDate.getDate() + 1);
-
-        //     res
-        //         .cookie('token', token, {
-        //             httpOnly: false,
-        //             secure: false,
-        //             sameSite: 'none',
-        //             expires: expirationDate
-        //         })
-        //         .send({ success: true });
-        // })
-
         app.post('/logout', async (req, res) => {
             const user = req.body;
             // console.log('logging out', user);
@@ -228,33 +208,6 @@ async function run() {
             res.send({});
         })
 
-        // app.patch('/update-room', async (req, res) => {
-        //     const { roomId, count_reviews, count_stars } = req.body;
-        //     console.log('inside patch', count_reviews, count_stars);
-        //     const filter = {
-        //         _id: new ObjectId(roomId)
-        //     }
-        //     const update = {
-        //         $set: {
-        //             count_reviews, count_stars
-        //         }
-        //     };
-        //     const result = await roomCollection.updateOne(filter, update);
-        //     res.send(result)
-        // })
-
-        // app.patch('/user', async (req, res) => {
-        //     const user = req.body;
-        //     const filter = { email: user.email };
-        //     const updatedUser = {
-        //         $set: {
-        //             lastLoggedAt: user.lastLoggedAt
-        //         }
-        //     }
-        //     const result = await userCollection.updateOne(filter, updatedUser)
-        //     res.send(result)
-        // })
-
         app.get('/api/v1/booking', async (req, res) => {
             const { date, id } = req.query;
             // console.log(date, id);
@@ -289,13 +242,6 @@ async function run() {
             const result = await bookingCollection.find(filter).toArray();
             res.send({ result });
         });
-
-        /** booking **/
-        // app.get('/api/v1/all-booking', async(req, res) => {
-        //     const email = req.query.email;
-        //     console.log(email);
-        //     res.send('sending')
-        // })
 
         /**** Sliders API ***/
         const sliderCollection = client.db('HotelBooking').collection('sliders');
@@ -404,13 +350,7 @@ async function run() {
             res.send(result);
         })
 
-        // rating,
-        //     review,
-        //     userName,
-        //     photoURL,
-        //     date,
-        //     userEmail,
-        //     roomId
+        
         /** Add Review **/
         app.post('/api/v1/add-review', verifyToken, async (req, res) => {
             const { review, rating, userName, userEmail, photoURL, date, roomId, profession } = req.body;
