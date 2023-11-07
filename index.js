@@ -12,7 +12,7 @@ const cookieParser = require('cookie-parser');
 
 // middleware
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: ['http://localhost:5173', 'https://hotel-booking-assignment-11.web.app'],
     credentials: true
 }));
 app.use(express.json());
@@ -69,6 +69,26 @@ async function run() {
                 })
                 .send({ success: true });
         })
+
+        // app.post('/jwt', async (req, res) => {
+        //     const user = req.body;
+        //     console.log('jwt', user);
+        //     const token = jwt.sign(user, secret, { expiresIn: '24h' })
+        //     console.log(token);
+
+
+        //     const expirationDate = new Date();
+        //     expirationDate.setDate(expirationDate.getDate() + 1);
+
+        //     res
+        //         .cookie('token', token, {
+        //             httpOnly: false,
+        //             secure: false,
+        //             sameSite: 'none',
+        //             expires: expirationDate
+        //         })
+        //         .send({ success: true });
+        // })
 
         app.post('/logout', async (req, res) => {
             const user = req.body;
