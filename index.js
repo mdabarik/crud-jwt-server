@@ -10,14 +10,16 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 
 
+
 // middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://hotel-booking-assignment-11.web.app'],
+    origin: ['http://localhost:5173',],
     credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
 const port = process.env.PORT || 5555
+// here are some code
 
 /*-------------------Custom Middleware--------------------*/
 const secret = process.env.SECRET;

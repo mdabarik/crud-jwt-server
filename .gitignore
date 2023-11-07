@@ -1,3 +1,5 @@
 node_modules
 .env
 BrandShopDB.teams.json
+.vercel
+BrandShopDB.teams.json
