@@ -140,11 +140,8 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/update-date', verifyToken, async (req, res) => {
+        app.patch('/update-date', async (req, res) => { 
             const { newDate, userEmail, id } = req.body;
-            if (req.body.userEmail !== req.user.email) {
-                return res.status(403).send({ message: 'forbidden access' })
-            }
             const dateNew = newDate + "";
             const filter = {
                 $and: [
