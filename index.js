@@ -34,7 +34,7 @@ const verifyToken = async (req, res, next) => {
             console.log(err, 'inside verify token err');
             return res.status(401).send({ message: 'Unauthorized Access' });
         }
-        console.log('decoded,', decoded);
+        // console.log('decoded,', decoded);
         req.user = decoded;
         next();
     })
@@ -59,13 +59,16 @@ async function run() {
 
         app.post('/jwt', async (req, res) => {
             const user = req.body;
-            console.log('jwt', user);
+            // console.log('jwt', user);
             const token = jwt.sign(user, secret, { expiresIn: '24h' })
-            console.log(token);
+            // console.log(token);
+            const expirationDate = new Date();
+            expirationDate.setDate(expirationDate.getDate() + 1);
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false
+                    secure: false,
+                    expires: expirationDate
                 })
                 .send({ success: true });
         })
@@ -92,7 +95,7 @@ async function run() {
 
         app.post('/logout', async (req, res) => {
             const user = req.body;
-            console.log('logging out', user);
+            // console.log('logging out', user);
             res.clearCookie('token', { maxAge: 0 }).send({ success: true })
         })
 
@@ -139,6 +142,24 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/api/v1/review', async(req, res) => {
+            const roomId = req.query.roomId;
+            const userEmail = req.query.email;
+            console.log('api/v1/review:email:roomId,get', roomId, userEmail);
+            const filter = {
+                $and: [
+                    {
+                       roomId: roomId 
+                    },
+                    {
+                        userEmail: userEmail
+                    }
+                ]
+            }
+            const result = await reviewCollection.find(filter).toArray();
+            res.send(result);
+        })
+
         /*** Booking API ***/
         // http://localhost:5555/api/v1/booking (POST)
         const bookingCollection = client.db('HotelBooking').collection('booking');
@@ -160,7 +181,7 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/update-date', async (req, res) => { 
+        app.patch('/update-date', async (req, res) => {
             const { newDate, userEmail, id } = req.body;
             const dateNew = newDate + "";
             const filter = {
@@ -178,22 +199,47 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/update-room/:id', verifyToken, async (req, res) => {
+        app.patch('/update-room/:id', async (req, res) => {
             const roomId = req.params.id;
             const { rating } = req.body;
+            // console.log('update-room rating patch',rating);
             const filter = {
                 _id: new ObjectId(roomId)
             }
-            // console.log(roomId);
             const update = {
                 $inc: {
-                    count_stars: rating,
+                    count_stars: parseFloat(rating),
                     count_reviews: 1
                 }
             };
-
             const result = await roomCollection.updateOne(filter, update);
         })
+
+        app.patch('/edit/patch/req/:id', async(req, res) => {
+            const roomId = req.params.id;
+            const {rating_count, stars_count} = req.body;
+            const pathData = {
+                count_reviews: parseInt(rating_count),
+                count_stars: parseFloat(stars_count)
+            }
+            console.log('api/v1/patch req', pathData);
+            res.send({});
+        })
+
+        // app.patch('/update-room', async (req, res) => {
+        //     const { roomId, count_reviews, count_stars } = req.body;
+        //     console.log('inside patch', count_reviews, count_stars);
+        //     const filter = {
+        //         _id: new ObjectId(roomId)
+        //     }
+        //     const update = {
+        //         $set: {
+        //             count_reviews, count_stars
+        //         }
+        //     };
+        //     const result = await roomCollection.updateOne(filter, update);
+        //     res.send(result)
+        // })
 
         // app.patch('/user', async (req, res) => {
         //     const user = req.body;
@@ -364,6 +410,21 @@ async function run() {
         //     userEmail,
         //     roomId
         /** Add Review **/
+        app.post('/api/v1/add-review', verifyToken, async (req, res) => {
+            const { review, rating, userName, userEmail, photoURL, date, roomId, profession } = req.body;
+            if (req.body.userEmail !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+
+            const feedback = {
+                review, rating, userName, userEmail, photoURL, date, roomId, profession
+            }
+
+            // console.log(feedback);
+            const result = await reviewCollection.insertOne(feedback);
+            res.send(result);
+        })
+
         app.put('/api/v1/add-review', verifyToken, async (req, res) => {
             const { review, rating, userName, userEmail, photoURL, date, roomId, profession } = req.body;
             if (req.body.userEmail !== req.user.email) {
