@@ -181,6 +181,8 @@ async function run() {
             res.send(result);
         })
 
+        
+
         app.patch('/update-room/:id', async (req, res) => {
             const roomId = req.params.id;
             const { rating } = req.body;
@@ -388,6 +390,20 @@ async function run() {
             const options = { upsert: true }
             const result = await reviewCollection.updateOne(filter, feedback, options);
             res.send(result);
+        })
+
+        app.get('/review/checking', async(req, res) => {
+            const id = req.query.id;
+            const email = req.query.email;
+            console.log(id, email, 'cloll...');
+            const filter = {
+                $and: [
+                    {userEmail: email},
+                    {roomId: id}
+                ]
+            }
+            const result = await bookingCollection.find(filter).toArray();
+            res.send({data:result});
         })
 
         /*-------------------API End--------------------*/
