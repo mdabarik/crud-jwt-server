@@ -19,9 +19,28 @@ app.use(express.json());
 app.use(cookieParser());
 const port = process.env.PORT || 5555
 
+/*-------------------Custom Middleware--------------------*/
+const secret = process.env.SECRET;
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).send({ message: 'Unauthorized Access' })
+    }
+    jwt.verify(token, secret, (err, decoded) => {
+        if (err) {
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).send({ message: 'Token has expired. Please log in again.' });
+            }
+            console.log(err, 'inside verify token err');
+            return res.status(401).send({ message: 'Unauthorized Access' });
+        }
+        console.log('decoded,', decoded);
+        req.user = decoded;
+        next();
+    })
+}
 
 /*-------------------MongoDB Start--------------------*/
-const secret = process.env.SECRET;
 const DB_USER = process.env.DB_USER;
 const DB_PASS = process.env.DB_PASS;
 const uri = `mongodb+srv://${DB_USER}:${DB_PASS}@cluster0.waijmz7.mongodb.net/?retryWrites=true&w=majority`;
@@ -40,15 +59,21 @@ async function run() {
 
         app.post('/jwt', async (req, res) => {
             const user = req.body;
-            console.log(user);
+            console.log('jwt', user);
             const token = jwt.sign(user, secret, { expiresIn: '24h' })
+            console.log(token);
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false,
-                    expires: new Date(Date.now() + 90000000)
+                    secure: false
                 })
                 .send({ success: true });
+        })
+
+        app.post('/logout', async (req, res) => {
+            const user = req.body;
+            console.log('logging out', user);
+            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
         })
 
         const roomCollection = client.db('HotelBooking').collection('rooms');
@@ -77,7 +102,6 @@ async function run() {
 
             if (sortField && sortOrder && sortField != "" && sortOrder != "") {
                 sortObj[sortField] = sortOrder;
-                console.log('hello');
             } else {
                 const noSortResult = await roomCollection.find(queryFilter).toArray();
                 res.send(noSortResult)
@@ -98,9 +122,12 @@ async function run() {
         /*** Booking API ***/
         // http://localhost:5555/api/v1/booking (POST)
         const bookingCollection = client.db('HotelBooking').collection('booking');
-        app.post('/api/v1/booking', async (req, res) => {
+        app.post('/api/v1/booking', verifyToken, async (req, res) => {
             const { bookingDate, roomImage, roomId, roomDescription, pricePerNight, userEmail } = req.body;
-            console.log(bookingDate, roomId);
+            if (req.body.userEmail !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            // console.log(bookingDate, roomId);
             const newBooking = {
                 roomId,
                 roomDescription,
@@ -113,38 +140,41 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/update-date', async(req, res) => {
-            const { newDate, userEmail, id  } = req.body;
+        app.patch('/update-date', verifyToken, async (req, res) => {
+            const { newDate, userEmail, id } = req.body;
+            if (req.body.userEmail !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
             const dateNew = newDate + "";
-            const filter = { 
+            const filter = {
                 $and: [
-                    {_id: new ObjectId(id)},
-                    {userEmail:userEmail}
+                    { _id: new ObjectId(id) },
+                    { userEmail: userEmail }
                 ]
-             }
-             const updatedBooking = {
+            }
+            const updatedBooking = {
                 $set: {
                     bookingDate: dateNew
                 }
-             }
-             const result = await bookingCollection.updateOne(filter, updatedBooking);
-             res.send(result);
+            }
+            const result = await bookingCollection.updateOne(filter, updatedBooking);
+            res.send(result);
         })
 
-        app.patch('/update-room/:id', async(req, res) => {
+        app.patch('/update-room/:id', verifyToken, async (req, res) => {
             const roomId = req.params.id;
             const { rating } = req.body;
             const filter = {
                 _id: new ObjectId(roomId)
             }
-            console.log(roomId);
+            // console.log(roomId);
             const update = {
                 $inc: {
                     count_stars: rating,
                     count_reviews: 1
                 }
             };
-        
+
             const result = await roomCollection.updateOne(filter, update);
         })
 
@@ -162,7 +192,7 @@ async function run() {
 
         app.get('/api/v1/booking', async (req, res) => {
             const { date, id } = req.query;
-            console.log(date, id);
+            // console.log(date, id);
 
             const newDate = date + "";
 
@@ -181,7 +211,14 @@ async function run() {
             res.send({ result });
         });
 
-        app.get('/api/v1/all-booking', async (req, res) => {
+        app.get('/api/v1/all-booking', verifyToken, async (req, res) => {
+            console.log(req.query.email, 'req.email');
+            console.log(req.user.email, 'user mail');
+            if (req.query.email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            } else {
+                console.log('verified  ...');
+            }
             const email = req.query.email;
             const filter = { userEmail: email }
             const result = await bookingCollection.find(filter).toArray();
@@ -208,7 +245,7 @@ async function run() {
         app.get('/api/v1/reviews', async (req, res) => {
             const userEmail = req.query.userEmail;
             const roomId = req.query.roomId;
-            console.log(userEmail, roomId);
+            // console.log(userEmail, roomId);
             let filter = {}
             if (userEmail & roomId) {
                 filter = {
@@ -228,15 +265,18 @@ async function run() {
 
         app.get('/reviews/:id', async (req, res) => {
             const id = req.params.id;
-            const filter = {roomId: id}
+            const filter = { roomId: id }
             const result = await reviewCollection.find(filter).toArray();
             res.send(result);
         })
 
-        app.get('/api/v1/singlereview', async (req, res) => {
+        app.get('/api/v1/singlereview', verifyToken, async (req, res) => {
             const userEmail = req.query.userEmail;
+            if (req.query.userEmail !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
             const roomId = req.query.roomId;
-            console.log(userEmail, roomId);
+            // console.log(userEmail, roomId);
 
             const filter = {
                 $and: [
@@ -253,7 +293,7 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/delete-review/:id', async (req, res) => {
+        app.delete('/delete-review/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const result = await bookingCollection.deleteMany(filter);
@@ -261,7 +301,7 @@ async function run() {
         })
 
         // tricky delete
-        app.put('/delete-review/:id', async (req, res) => {
+        app.put('/delete-review/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const filter = {
                 _id: new ObjectId(id)
@@ -293,7 +333,7 @@ async function run() {
                     userEmail: userEmail
                 }
             }
-            console.log(filter);
+            // console.log(filter);
             const options = { upsert: true };
             const result = await newsletterCollection.updateOne(filter, newsLetter, options);
             res.send(result);
@@ -307,8 +347,11 @@ async function run() {
         //     userEmail,
         //     roomId
         /** Add Review **/
-        app.put('/api/v1/add-review', async (req, res) => {
+        app.put('/api/v1/add-review', verifyToken, async (req, res) => {
             const { review, rating, userName, userEmail, photoURL, date, roomId, profession } = req.body;
+            if (req.body.userEmail !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
             const filter = {
                 $and: [
                     { roomId: roomId },
@@ -321,7 +364,7 @@ async function run() {
                     review, rating, userName, userEmail, photoURL, date, roomId, profession
                 }
             }
-            console.log(feedback);
+            // console.log(feedback);
             const options = { upsert: true }
             const result = await reviewCollection.updateOne(filter, feedback, options);
             res.send(result);
@@ -336,7 +379,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    console.log(new Date());
+    // console.log(new Date());
     res.send('base route hit detected!!!');
 })
 
