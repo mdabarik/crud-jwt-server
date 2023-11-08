@@ -36,7 +36,7 @@ const verifyToken = async (req, res, next) => {
             console.log(err, 'inside verify token err');
             return res.status(401).send({ message: 'Unauthorized Access' });
         }
-        // console.log('decoded,', decoded);
+        console.log('decodingingng...,', decoded);
         req.user = decoded;
         next();
     })
@@ -163,7 +163,7 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/update-date', async (req, res) => {
+        app.patch('/update-date', verifyToken, async (req, res) => {
             const { newDate, userEmail, id } = req.body;
             const dateNew = newDate + "";
             const filter = {
@@ -183,7 +183,7 @@ async function run() {
 
         
 
-        app.patch('/update-room/:id', async (req, res) => {
+        app.patch('/update-room/:id', verifyToken, async (req, res) => {
             const roomId = req.params.id;
             const { rating } = req.body;
             // console.log('update-room rating patch',rating);
@@ -199,7 +199,7 @@ async function run() {
             const result = await roomCollection.updateOne(filter, update);
         })
 
-        app.patch('/edit/patch/req/:id', async(req, res) => {
+        app.patch('/edit/patch/req/:id', verifyToken, async(req, res) => {
             const roomId = req.params.id;
             const {rating_count, stars_count} = req.body;
             const pathData = {
@@ -392,7 +392,7 @@ async function run() {
             res.send(result);
         })
 
-        app.get('/review/checking', async(req, res) => {
+        app.get('/review/checking', verifyToken, async(req, res) => {
             const id = req.query.id;
             const email = req.query.email;
             console.log(id, email, 'cloll...');
