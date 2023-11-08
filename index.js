@@ -13,7 +13,7 @@ const cookieParser = require('cookie-parser');
 
 // middleware
 app.use(cors({
-    origin: ['http://localhost:5173',],
+    origin: ['http://localhost:5173','https://hotel-booking-assignment-11.web.app'],
     credentials: true
 }));
 app.use(express.json());
@@ -69,8 +69,9 @@ async function run() {
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false,
-                    expires: expirationDate
+                    secure: true,
+                    expires: expirationDate,
+                    sameSite: 'none'
                 })
                 .send({ success: true });
         })
